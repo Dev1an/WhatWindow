@@ -56,27 +56,26 @@ struct ProcessDetailView: View {
                     .onChange(of: process.id) { old, new in
                         updateProcessInfo(pid: new)
                     }
-            }
-            if let name = process.name {
-                GridRow {
-                    if let icon = processInfo.app?.icon {
-                        Image(nsImage: icon)
-                    } else {
-                        Text("Name:")
-                    }
-                    HStack {
-                        Text(name).bold().textSelection(.enabled)
-                        if let app = processInfo.app {
-                            Button("Activate", systemImage: "arrowshape.right.circle") {
-                                app.activate()
+                    .toolbar {
+                        if let icon = processInfo.app?.icon {
+                            ToolbarItem(placement: .navigation) {
+                                Image(nsImage: icon)
                             }
                         }
                     }
-                }
             }
             GridRow {
                 Text("PID:")
-                Text("\(process.id)").textSelection(.enabled).bold()
+                HStack {
+                    Text("\(process.id)")
+                        .textSelection(.enabled).bold()
+                    if let app = processInfo.app {
+                        Button("Activate", systemImage: "arrowshape.right.circle") {
+                            app.activate()
+                        }
+                    }
+                    Spacer()
+                }
             }
             switch processInfo {
             case .app(let app):
