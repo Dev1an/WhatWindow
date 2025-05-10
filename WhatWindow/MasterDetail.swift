@@ -19,9 +19,12 @@ struct MasterDetail: View {
         } detail: {
             if let process = selectedProcess, let windows = WindowManager.processes[process] {
                 ProcessDetailView(process: process, windows: windows)
-                    .navigationTitle((process.name ?? "Unknown") + " (PID: \(process.id))")
+                    .navigationTitle(process.name ?? "PID: \(process.id)")
             } else {
-                Text("Nothing selected")
+                Text("Select an app in the list on the left")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+                    .padding()
             }
         }
     }
