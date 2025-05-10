@@ -27,11 +27,11 @@ struct ProcessDetailView: View {
                     Text("\(window.name ?? "\(window.id)")")
                 }
                 VStack {
-                    Group {
+                    Grid(alignment: Alignment.leading) {
+                        ProcessDetailView(process: process)
                         if let window = windows.first(where: {$0.id == selectedWindow}) {
-                            WindowDetailView(process: process, window: window)
-                        } else {
-                            Text("No selection")
+                            Divider()
+                            WindowDetailView(window: window)
                         }
                     }
                     .padding()
@@ -41,131 +41,78 @@ struct ProcessDetailView: View {
         }
     }
     
-    struct WindowDetailView: View {
+    struct ProcessDetailView: View {
         let process: WindowManager.Process
-        let window: WindowManager.Window
-        
         @State var processInfo = ProcessInfo.none
-    
+
         var body: some View {
-            Grid(alignment: Alignment.leading) {
+            GridRow {
+                Text("Process")
+                    .bold()
+                    .foregroundStyle(.secondary)
+                    .gridCellColumns(2)
+                    .padding(.bottom, 3)
+                    .onAppear { updateProcessInfo(pid: process.id) }
+                    .onChange(of: process.id) { old, new in
+                        updateProcessInfo(pid: new)
+                    }
+            }
+            if let name = process.name {
                 GridRow {
-                    Text("Process")
-                        .bold()
-                        .foregroundStyle(.secondary)
-                        .gridCellColumns(2)
-                        .padding(.bottom, 3)
-                        .onAppear {
-                            if let app = NSRunningApplication(processIdentifier: process.id) {
-                                processInfo = .app(app)
-                            } else if let url = getPidURL(pid: process.id) {
-                                processInfo = .executable(url)
-                            }
-                        }
-                }
-                if let name = process.name {
-                    GridRow {
-                        if let icon = processInfo.app?.icon {
-                            Image(nsImage: icon)
-                        } else {
-                            Text("Name:")
-                        }
-                        HStack {
-                            Text(name).bold().textSelection(.enabled)
-                            if let app = processInfo.app {
-                                Button("Activate", systemImage: "arrowshape.right.circle") {
-                                    app.activate()
-                                }
-                            }
-                        }
-                    }
-                }
-                GridRow {
-                    Text("PID:")
-                    Text("\(process.id)").textSelection(.enabled).bold()
-                }
-                switch processInfo {
-                case .app(let app):
-                    if let url = app.bundleURL?.path() {
-                        GridRow {
-                            Text("Bundle:")
-                            Text(url).textSelection(.enabled).bold()
-                        }
-                    }
-                    if let launch = app.launchDate {
-                        GridRow {
-                            Text("Launch date:")
-                            Text("\(launch, format: .dateTime.day().month().year())")
-                                .textSelection(.enabled).bold()
-                        }
-                        GridRow {
-                            Text("Launch time:")
-                            Text("\(launch, format: .dateTime.hour().minute().second().timeZone())")
-                                .textSelection(.enabled).bold()
-                        }
-                    }
-                case .executable(let url):
-                    GridRow {
-                        Text("Executable:")
-                        Text(url.path()).textSelection(.enabled).bold()
-                    }
-                case .none:
-                    EmptyView()
-                }
-                Divider()
-                GridRow {
-                    Text("Window")
-                        .bold()
-                        .foregroundStyle(.secondary)
-                        .gridCellColumns(2)
-                        .padding(.bottom, 3)
-                }
-                GridRow {
-                    Text("ID:").gridColumnAlignment(.trailing)
-                    HStack {
-                        Text("\(window.id)")
-                            .textSelection(.enabled)
-                            .bold()
-                        Button("Highlight", systemImage: "star") {
-                            highlight(window: window)
-                        }
-                        .padding(.horizontal, 4)
-                        Spacer()
-                    }
-                }
-                if let name = window.name {
-                    GridRow {
+                    if let icon = processInfo.app?.icon {
+                        Image(nsImage: icon)
+                    } else {
                         Text("Name:")
-                        Text(name)
-                            .bold()
-                            .textSelection(.enabled)
+                    }
+                    HStack {
+                        Text(name).bold().textSelection(.enabled)
+                        if let app = processInfo.app {
+                            Button("Activate", systemImage: "arrowshape.right.circle") {
+                                app.activate()
+                            }
+                        }
                     }
                 }
-                GridRow {
-                    Text("Layer:")
-                    Text("\(window.layerNumber)")
-                        .bold()
-                        .textSelection(.enabled)
+            }
+            GridRow {
+                Text("PID:")
+                Text("\(process.id)").textSelection(.enabled).bold()
+            }
+            switch processInfo {
+            case .app(let app):
+                if let url = app.bundleURL?.path() {
+                    GridRow {
+                        Text("Bundle:")
+                        Text(url).textSelection(.enabled).bold()
+                    }
                 }
-                GridRow {
-                    Text("Position:")
-                    Text("\(window.bounds.origin)")
-                        .bold()
-                        .textSelection(.enabled)
+                if let launch = app.launchDate {
+                    GridRow {
+                        Text("Launch date:")
+                        Text("\(launch, format: .dateTime.day().month().year())")
+                            .textSelection(.enabled).bold()
+                    }
+                    GridRow {
+                        Text("Launch time:")
+                        Text("\(launch, format: .dateTime.hour().minute().second().timeZone())")
+                            .textSelection(.enabled).bold()
+                    }
                 }
+            case .executable(let url):
                 GridRow {
-                    Text("Size:")
-                    Text("\(window.bounds.size)")
-                        .bold()
-                        .textSelection(.enabled)
+                    Text("Executable:")
+                    Text(url.path()).textSelection(.enabled).bold()
                 }
-                GridRow {
-                    Spacer().gridCellUnsizedAxes([.vertical, .horizontal])
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(lineWidth: 2)
-                        .foregroundStyle(.tertiary)
-                        .aspectRatio(window.bounds.size.width / window.bounds.size.height, contentMode: .fit)
-                }
+            case .none:
+                EmptyView()
+            }
+        }
+        
+        func updateProcessInfo(pid: pid_t) {
+            if let app = NSRunningApplication(processIdentifier: pid) {
+                processInfo = .app(app)
+            } else if let url = getPidURL(pid: pid) {
+                processInfo = .executable(url)
             }
         }
         
@@ -180,6 +127,80 @@ struct ProcessDetailView: View {
             }
             guard let path = String(data: Data(pathBytes), encoding: .utf8) else { return nil }
             return URL(fileURLWithPath: path)
+        }
+        
+        enum ProcessInfo {
+            case app(NSRunningApplication)
+            case executable(URL)
+            case none
+            
+            var app: NSRunningApplication? {
+                if case .app(let app) = self {
+                    app
+                } else {
+                    nil
+                }
+            }
+        }
+    }
+    
+    struct WindowDetailView: View {
+        let window: WindowManager.Window
+    
+        var body: some View {
+            GridRow {
+                Text("Window")
+                    .bold()
+                    .foregroundStyle(.secondary)
+                    .gridCellColumns(2)
+                    .padding(.bottom, 3)
+            }
+            GridRow {
+                Text("ID:").gridColumnAlignment(.trailing)
+                HStack {
+                    Text("\(window.id)")
+                        .textSelection(.enabled)
+                        .bold()
+                    Button("Highlight", systemImage: "star") {
+                        highlight(window: window)
+                    }
+                    .padding(.horizontal, 4)
+                    Spacer()
+                }
+            }
+            if let name = window.name {
+                GridRow {
+                    Text("Name:")
+                    Text(name)
+                        .bold()
+                        .textSelection(.enabled)
+                }
+            }
+            GridRow {
+                Text("Layer:")
+                Text("\(window.layerNumber)")
+                    .bold()
+                    .textSelection(.enabled)
+            }
+            GridRow {
+                Text("Position:")
+                Text("\(window.bounds.origin)")
+                    .bold()
+                    .textSelection(.enabled)
+            }
+            GridRow {
+                Text("Size:")
+                Text("\(window.bounds.size)")
+                    .bold()
+                    .textSelection(.enabled)
+            }
+            GridRow {
+                Spacer().gridCellUnsizedAxes([.vertical, .horizontal])
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(lineWidth: 2)
+                    .foregroundStyle(.tertiary)
+                    .aspectRatio(window.bounds.size.width / window.bounds.size.height, contentMode: .fit)
+            }
         }
         
         func highlight(window: WindowManager.Window) {
@@ -200,20 +221,6 @@ struct ProcessDetailView: View {
                             highlightWindow.orderOut(self)
                         }
                     }
-                }
-            }
-        }
-        
-        enum ProcessInfo {
-            case app(NSRunningApplication)
-            case executable(URL)
-            case none
-            
-            var app: NSRunningApplication? {
-                if case .app(let app) = self {
-                    app
-                } else {
-                    nil
                 }
             }
         }
