@@ -6,12 +6,12 @@ Ever worry that a shady app might pop up a window that looks legitimate but isnâ
 
 Features:
 
-- List all windows (that are rendered using [Quartz Window Services](https://developer.apple.com/documentation/coregraphics/quartz_window_services)) grouped by process
-- Give a visual preview of the selected window
+- List all windows grouped by process
+- Give a visual preview of the listed windows
 - Show an overlay on your screen that highlights the actual window
 
 Technologies:
 
-- Quartz Window Services
+- [Quartz Window Services](https://developer.apple.com/documentation/coregraphics/quartz_window_services)
 - SwiftUI
 - Cocoa
